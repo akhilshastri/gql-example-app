@@ -113,5 +113,3 @@ dist
 .idea
 node_modules
 *.iml
-
-resolvers

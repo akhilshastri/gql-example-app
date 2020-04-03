@@ -1,50 +1,30 @@
 import "reflect-metadata";
-
-import { getRepository } from "typeorm";
 import { GraphQLServer } from 'graphql-yoga'
 import {createConnection} from "typeorm";
-import { User } from "./entity/User";
+import { buildSchema } from "type-graphql";
+import {UserResolver} from "./resolvers/user-resolver";
+import {HelloResolver} from "./resolvers/hello-resolver";
 
+const getSchema = async ()=> {
+    let schema;
+    try {
 
-const typeDefs = `
-  type User {
-    id: ID!
-    name: String!
-    email: String!
-  }
-  type Query {
-    hello(name: String): String!
-    user(id: ID!): User!
-  }
-  type Mutation {
-    addUser(name: String!, email: String!): User
-  }
-`;
+        schema = await buildSchema({
+            resolvers: [UserResolver, HelloResolver]
+        });
 
-const resolvers = {
-    Query: {
-        hello: (_, { name }) => `Hello ${name || 'World'}`,
-        // this is the user resolver
-        user: (_, { id }) => {
-            return getRepository(User).findOne(id)
-        },
-    },
-    Mutation: {
-        // this is the addUser resolver
-        addUser: (_, { name, email }) => {
-            const user = new User()
-            user.email = email
-            user.name = name
-            return getRepository(User).save(user)
-        },
-    },
+        return schema ;
+    } catch (e) {
+        console.error(e);
+        throw e;
+    }
+
 };
 
-const server = new GraphQLServer({ typeDefs, resolvers })
-
-createConnection().then(() => {
-    server.start(() => console.log("Server is running on localhost:4000"));
+createConnection().then(async () => {
+    const schema = await getSchema();
+    const server = new GraphQLServer({ schema }) ;
+    await server.start(() => console.log("Server is running on localhost:4000"));
 }).catch(() => {
     console.log("Couldn't connect to the database.")
 });
-//server.start(() => console.log('Server is running on localhost:4000'))
